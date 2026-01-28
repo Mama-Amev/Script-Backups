@@ -2,9 +2,9 @@
 # with bubble gum, shoe laces, and prayer. There is an 80% chance this
 # script will completely break on usage, so please be mindful of that.
 # Main goal of this script is to scan through several hundred .XML
-# files and put specific keywords into a .csv file. It is built
-# for a specific usage, so it may not work entirely unless
-# used on what it was built for. 
+# files and search for specific tags/words and put them into 
+# a .csv file. It is built for a specific usage, 
+# so it may not work entirely unless used on what it was built for. 
 
 
 import os
