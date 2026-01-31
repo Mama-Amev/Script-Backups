@@ -15,7 +15,7 @@ from datetime import datetime
 BASE_DIR = r"PATH/TO/FILE"
 LOG_DIR = os.path.join(BASE_DIR, "Logs")
 
-FOLDERS = ["Henya", "Panko", "Snuffy"]
+FOLDERS = ["Folder Name", "Folder Name", "Folder Name"]
 
 def ensure_logs():
     os.makedirs(LOG_DIR, exist_ok=True)
