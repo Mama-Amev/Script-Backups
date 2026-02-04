@@ -1,3 +1,7 @@
+# Sole purpose is to restart file explorer and run
+# sfc /scannow due to my own machine having occasional hiccups
+# with file explorer.
+
 # Self-elevate if not running as Administrator
 $IsAdmin = ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsIdentity]::GetCurrent()
