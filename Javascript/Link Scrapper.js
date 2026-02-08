@@ -1,3 +1,7 @@
+// Currently bugged as Mega.nz & Google Drive links are not captured.
+// Only dropbox links are currently being grabbed. 
+// Planned to be fixed inevitably.
+
 // ==UserScript==
 // @name         Kemono Link Auto Copier
 // @namespace    https://kemono.cr/
@@ -48,3 +52,4 @@
         subtree: true
     });
 })();
+
