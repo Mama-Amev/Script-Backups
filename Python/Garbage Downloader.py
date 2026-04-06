@@ -24,27 +24,20 @@ import datetime
 #  Fill in the paths below before running the script.
 # ==============================================================
 
-# Folder that contains List.txt.
 # Example: r"C:\Users\YourName\Downloads\ytdlp"
 BASE_DIR = r""
 
-# Folder where files are staged during download (processing area).
 # Example: r"C:\Users\YourName\Downloads\ytdlp\processing"
 PROCESSING_DIR = r""
 
-# Folder where completed downloads are moved after finishing.
 # Example: r"C:\Users\YourName\Downloads\ytdlp\output"
 OUTPUT_DIR = r""
 
-# Folder where error logs are written.
 # Example: r"C:\Users\YourName\Downloads\ytdlp\logs"
 LOG_DIR = r""
 
-# Seconds to wait between each successful download.
-SLEEP_BETWEEN = 15
-
-# Seconds to wait after a failed download before continuing.
-SLEEP_ON_ERROR = 30
+SLEEP_BETWEEN  = 15   # seconds between downloads
+SLEEP_ON_ERROR = 30   # seconds to wait after a failed download
 
 # ==============================================================
 #  END CONFIGURATION
@@ -55,8 +48,7 @@ LIST_FILE       = os.path.join(BASE_DIR, "List.txt")
 OUTPUT_TEMPLATE = os.path.join(PROCESSING_DIR, "%(title)s.%(ext)s")
 
 
-def validate_config() -> None:
-    """Exit early with a clear message if any config path was left blank."""
+def validate_config():
     fields = {
         "BASE_DIR":       BASE_DIR,
         "PROCESSING_DIR": PROCESSING_DIR,
@@ -68,18 +60,15 @@ def validate_config() -> None:
         print("ERROR: The following paths have not been set in the CONFIGURATION block:")
         for name in missing:
             print(f"  {name}")
-        print("Open the script and fill in the missing paths before running.")
         sys.exit(1)
 
 
-def ensure_dirs() -> None:
-    """Create working directories if they do not already exist."""
+def ensure_dirs():
     for d in (PROCESSING_DIR, OUTPUT_DIR, LOG_DIR):
         os.makedirs(d, exist_ok=True)
 
 
-def log_error(url: str, message: str) -> None:
-    """Append an error entry to the daily error log."""
+def log_error(url, message):
     today     = datetime.date.today().strftime("%Y-%m-%d")
     log_path  = os.path.join(LOG_DIR, f"errors_{today}.log")
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -88,12 +77,7 @@ def log_error(url: str, message: str) -> None:
     print(f"Error logged: {log_path}")
 
 
-def check_and_update_ytdlp() -> None:
-    """
-    Run 'yt-dlp -U'. If an update is available it will be downloaded
-    and installed automatically. If already up to date, nothing changes
-    and the script continues normally.
-    """
+def check_and_update_ytdlp():
     print("-" * 60)
     print("Checking for yt-dlp updates...")
     print("-" * 60)
@@ -104,14 +88,13 @@ def check_and_update_ytdlp() -> None:
     print()
 
 
-def load_urls(list_file: str) -> list[str]:
-    """Read URLs from List.txt, skipping blank lines and comment lines."""
-    if not os.path.isfile(list_file):
-        print(f"ERROR: List file not found: {list_file}")
+def load_urls():
+    if not os.path.isfile(LIST_FILE):
+        print(f"ERROR: List file not found: {LIST_FILE}")
         sys.exit(1)
 
     urls = []
-    with open(list_file, "r", encoding="utf-8") as f:
+    with open(LIST_FILE, "r", encoding="utf-8") as f:
         for raw in f:
             line = raw.strip()
             if line and not line.startswith("#"):
@@ -124,13 +107,7 @@ def load_urls(list_file: str) -> list[str]:
     return urls
 
 
-def move_to_output() -> list[str]:
-    """
-    Move every completed file from PROCESSING_DIR into OUTPUT_DIR.
-    If a filename already exists in the output folder, a counter is
-    appended to avoid overwriting.
-    Returns a list of the filenames that were moved.
-    """
+def move_to_output():
     moved = []
     for fname in os.listdir(PROCESSING_DIR):
         src  = os.path.join(PROCESSING_DIR, fname)
@@ -146,12 +123,7 @@ def move_to_output() -> list[str]:
     return moved
 
 
-def download(url: str, index: int, total: int) -> bool:
-    """
-    Invoke yt-dlp for a single URL.
-    Progress is streamed directly to the terminal.
-    Returns True on success, False on failure.
-    """
+def download(url, index, total):
     print()
     print("-" * 60)
     print(f"[{index}/{total}] {url}")
@@ -176,20 +148,18 @@ def download(url: str, index: int, total: int) -> bool:
             print(f"Download failed: {msg}")
             log_error(url, msg)
             return False
-
     except FileNotFoundError:
-        msg = "yt-dlp executable not found. Confirm it is installed and on PATH."
+        msg = "yt-dlp not found. Confirm it is installed and on PATH."
         print(f"ERROR: {msg}")
         log_error(url, msg)
         return False
     except Exception as exc:
-        msg = str(exc)
-        print(f"ERROR: {msg}")
-        log_error(url, msg)
+        print(f"ERROR: {exc}")
+        log_error(url, str(exc))
         return False
 
 
-def main() -> None:
+def main():
     validate_config()
     ensure_dirs()
 
@@ -200,12 +170,12 @@ def main() -> None:
 
     check_and_update_ytdlp()
 
-    urls  = load_urls(LIST_FILE)
-    total = len(urls)
-    print(f"Found {total} URL(s) in {LIST_FILE}")
-
+    urls          = load_urls()
+    total         = len(urls)
     success_count = 0
     fail_count    = 0
+
+    print(f"Found {total} URL(s) in {LIST_FILE}")
 
     for idx, url in enumerate(urls, start=1):
         ok = download(url, idx, total)
