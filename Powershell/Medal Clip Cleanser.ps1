@@ -1,3 +1,6 @@
+# Currently broken and causes confliction issues within medal
+# Look into fixing later
+
 Add-Type -AssemblyName Microsoft.VisualBasic
 
 $folders = @(
