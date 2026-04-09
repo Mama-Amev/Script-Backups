@@ -1,41 +1,40 @@
+// ==UserScript==
+// @name         Remove Youtube Ads(Works)
+// @require      http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js
+// @namespace    http://tampermonkey.net/
+// @version      0.8
+// @description  Removes all ads including video ads
+// @author       Wrekt/Ethan
+// @match        https://www.youtube.com/*
+// @grant        none
+// @downloadURL https://update.greasyfork.org/scripts/27199/Remove%20Youtube%20Ads%28Works%29.user.js
+// @updateURL https://update.greasyfork.org/scripts/27199/Remove%20Youtube%20Ads%28Works%29.meta.js
+// ==/UserScript==
 
+var advideo = false;
 
-    // ==UserScript==
-    // @name         Remove Youtube Ads(Works)
-    // @require      http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js
-    // @namespace    http://tampermonkey.net/
-    // @version      0.8
-    // @description  Removes all ads including video ads
-    // @author       Wrekt/Ethan
-    // @match        https://www.youtube.com/*
-    // @grant        none
-    // ==/UserScript==
+setTimeout(function() {
+    console.log("Removing All Youtbe Ad's!!");
+}, 4000);
 
-    var advideo = false;
+function removead() {
+    $(".video-stream").attr("src", "");
+}
 
-    setTimeout(function() {
-        console.log("Removing All Youtbe Ad's!!");
-    }, 4000);
+(function(){
+    if ($(".videoAdUiRedesign")[0]){
+    advideo = true;
+} else {
+    advideo = false;
+}
+    $("#player-ads").remove();
+    $("#masthead-ad").remove();
+    $("#offer-module").remove();
+    $(".video-ads").remove();
+    $("#pyv-watch-related-dest-url").remove();
 
-    function removead() {
-        $(".video-stream").attr("src", "");
+    if (advideo == true) {
+        removead();
     }
-
-    (function(){
-        if ($(".videoAdUiRedesign")[0]){
-        advideo = true;
-    } else {
-        advideo = false;
-    }
-        $("#player-ads").remove();
-        $("#masthead-ad").remove();
-        $("#offer-module").remove();
-        $(".video-ads").remove();
-        $("#pyv-watch-related-dest-url").remove();
-
-        if (advideo == true) {
-            removead();
-        }
-        setTimeout(arguments.callee, 1000);
-    })(1000);
-
+    setTimeout(arguments.callee, 1000);
+})(1000);
