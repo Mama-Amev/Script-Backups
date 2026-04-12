@@ -19,10 +19,6 @@ DEFAULT_OUTPUT = r"PATH\TO\FILE\game_results.csv"
 GAME_EXTENSIONS = {".exe", ".lnk", ".url", ".desktop"}
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def format_bytes(num_bytes: int) -> str:
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if num_bytes < 1024:
@@ -58,18 +54,44 @@ def resolve_url(url_path: Path) -> Path | None:
     return None
 
 
-def folder_size(path: Path) -> int:
-    total = 0
+def get_compressed_file_size(filepath: str) -> int:
+    """
+    Use GetCompressedFileSizeW to get the actual on-disk size of a file,
+    exactly as Windows Explorer reports 'Size on Disk'. This correctly
+    handles NTFS compression, sparse files, and normal files alike.
+    """
+    import ctypes
+    high = ctypes.c_ulong(0)
+    low  = ctypes.windll.kernel32.GetCompressedFileSizeW(
+        ctypes.c_wchar_p(filepath),
+        ctypes.byref(high),
+    )
+    INVALID = 0xFFFFFFFF
+    if low == INVALID and ctypes.GetLastError() != 0:
+        # Fall back to stat size if the API fails
+        try:
+            return Path(filepath).stat().st_size
+        except OSError:
+            return 0
+    return (high.value << 32) | low
+
+
+def folder_size(path: Path) -> tuple[int, int]:
+    """Return (raw_bytes, size_on_disk_bytes) for a folder tree."""
+    raw_total  = 0
+    disk_total = 0
     try:
         for dirpath, _dirs, files in os.walk(path):
             for f in files:
+                fp = str(Path(dirpath) / f)
                 try:
-                    total += (Path(dirpath) / f).stat().st_size
+                    raw_total  += Path(fp).stat().st_size
+                    disk_total += get_compressed_file_size(fp)
                 except OSError:
                     pass
     except OSError:
         pass
-    return total
+    return raw_total, disk_total
 
 
 def drive_used(path: Path) -> str:
@@ -93,6 +115,7 @@ def clean_game_name(name: str) -> str:
     name = re.sub(r"[_\-\.]+", " ", name)
     name = re.sub(r"\s{2,}", " ", name).strip()
     return name
+
 
 def scan_folder(root: Path) -> list[dict]:
     entries = []
@@ -139,19 +162,27 @@ def scan_folder(root: Path) -> list[dict]:
         else:
             continue
 
-        size_bytes  = folder_size(install_path) if install_path.is_dir() else install_path.stat().st_size
+        if install_path.is_dir():
+            raw_bytes, disk_bytes = folder_size(install_path)
+        else:
+            raw_bytes  = install_path.stat().st_size
+            disk_bytes = get_compressed_file_size(str(install_path))
+
         drive       = str(Path(install_path.anchor))
         drive_space = drive_used(install_path)
 
         entries.append({
-            "game_name":        game_name,
-            "install_location": str(install_path),
-            "primary_exe":      primary_exe,
-            "install_size":     format_bytes(size_bytes),
-            "drive":            drive,
-            "drive_used":       drive_space,
+            "game_name":          game_name,
+            "install_location":   str(install_path),
+            "primary_exe":        primary_exe,
+            "size_on_disk":       format_bytes(disk_bytes),
+            "actual_size":        format_bytes(raw_bytes),
+            "size_on_disk_bytes": disk_bytes,
+            "drive":              drive,
+            "drive_used":         drive_space,
         })
 
+    entries.sort(key=lambda e: e["size_on_disk_bytes"], reverse=True)
     return entries
 
 
@@ -165,6 +196,7 @@ def find_primary_exe(folder: Path) -> str:
     ]
     return min(candidates, key=len) if candidates else "N/A"
 
+
 def print_report(entries: list[dict]):
     sep = "─" * 72
     for e in entries:
@@ -172,7 +204,7 @@ def print_report(entries: list[dict]):
         print(f"  Game             : {e['game_name']}")
         print(f"  Install location : {e['install_location']}")
         print(f"  Primary exe      : {e['primary_exe']}")
-        print(f"  Install size     : {e['install_size']}")
+        print(f"  Size on disk     : {e['size_on_disk']}  (actual: {e['actual_size']})")
         print(f"  Drive            : {e['drive']}  (used: {e['drive_used']})")
     print(sep)
     print(f"\n  Total games: {len(entries)}")
@@ -181,8 +213,9 @@ def print_report(entries: list[dict]):
 def write_csv(entries: list[dict], output_path: str):
     fieldnames = [
         "game_name", "install_location", "primary_exe",
-        "install_size", "drive", "drive_used",
+        "size_on_disk", "actual_size", "drive", "drive_used",
     ]
+    # size_on_disk_bytes is used for sorting only; excluded from CSV output
     with open(output_path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
@@ -194,6 +227,7 @@ def write_json(entries: list[dict], output_path: str):
     with open(output_path, "w", encoding="utf-8") as fh:
         json.dump(entries, fh, indent=2, ensure_ascii=False)
     print(f"  JSON saved → {output_path}")
+
 
 def main():
     parser = argparse.ArgumentParser(
